@@ -57,7 +57,10 @@ export function ChatBox() {
     };
 
     try {
-      stompClient?.send("/app/chat", {}, JSON.stringify(chatMessage));
+      stompClient?.publish({
+        destination: "/app/chat",
+        body: JSON.stringify(chatMessage),
+      });
     } catch (err) {
       console.error(err);
     }

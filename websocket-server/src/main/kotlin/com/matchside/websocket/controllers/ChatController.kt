@@ -6,10 +6,9 @@ import com.matchside.websocket.models.UserActionDto
 import org.springframework.messaging.handler.annotation.MessageMapping
 import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.messaging.handler.annotation.SendTo
-import org.springframework.stereotype.Controller
-import java.util.*
+import org.springframework.web.bind.annotation.RestController
 
-@Controller
+@RestController
 class ChatController {
     @MessageMapping("/join")
     @SendTo("/topic/users")

@@ -1,8 +1,7 @@
+import Stomp, { Client } from "@stomp/stompjs";
 import { useEffect, useState } from "react";
-import SockJS from "sockjs-client";
-import Stomp, { Client } from "stompjs";
 
-const SOCKET_URL = "http://localhost:8080/ws";
+const SOCKET_URL = "ws://localhost:8080/ws";
 
 interface SocketProps {
   subscriptions: Record<string, (message: Stomp.Message) => void>;
@@ -15,37 +14,37 @@ export const useSocket = ({ subscriptions, onDisconnect }: SocketProps) => {
   const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
-    const socket = new SockJS(SOCKET_URL);
-    const client = Stomp.over(socket);
-
-    client.connect(
-      {},
-      () => {
+    const client = new Client({
+      brokerURL: SOCKET_URL,
+      onConnect: () => {
         setIsConnected(true);
         let username = "";
-        while (!username) {
-          username = prompt("Enter username")?.trim() ?? "";
-        }
+
+        username = prompt("Enter username", "User")?.trim() ?? "";
+
         setUserId(username);
-        client.send("/app/join", {}, JSON.stringify({ name: username }));
+        client.publish({
+          destination: "/app/join",
+          body: JSON.stringify({ name: username }),
+        });
         Object.entries(subscriptions).forEach(([topic, callback]) =>
           client.subscribe(topic, callback)
         );
-        client.subscribe("disconnect");
+        client.subscribe("disconnect", () => console.log("disconnected"));
       },
-      (err) => {
-        console.error(err);
-      }
-    );
+      onDisconnect: () => {
+        setIsConnected(false);
+        if (typeof onDisconnect !== "undefined") onDisconnect();
+      },
+    });
+
+    client.activate();
 
     setStompClient(client);
 
     return () => {
       try {
-        client.disconnect(() => {
-          setIsConnected(false);
-          if (typeof onDisconnect !== "undefined") onDisconnect();
-        });
+        client.forceDisconnect();
       } catch (err) {
         console.error(err);
       }
